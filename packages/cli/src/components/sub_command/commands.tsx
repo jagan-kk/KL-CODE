@@ -6,11 +6,20 @@ export const COMMANDS: Command[]=[
         name: "new",
         description: "Start a new conversation",
         value: "/new",
+        action: (ctx) => {
+            ctx.toast.show({ message: "Starting new conversation"});
+        },
     },
     {
         name: "agents",
         description: "Select a agent",
         value: "/agent",
+        action: (ctx) => {
+            ctx.dialog.open({
+                title:"select Mode",
+                children: <text>Agent selection...</text>
+            })
+        },
     },
     {
         name: "login",
@@ -26,11 +35,20 @@ export const COMMANDS: Command[]=[
         name: "model",
         description: "select a model",
         value: "/model",
+        action: (ctx) => {
+            ctx.dialog.open({
+                title:"select Model",
+                children: <text>Model selection...</text>
+            })
+        },
     },
     {
         name: "themes",
         description: "Select a theme",
         value: "/themes",
+        action: (ctx) => {
+            ctx.toast.show({ message: "Selecting a theme"});
+        },
     },
     {
         name: "logout",
