@@ -1,3 +1,4 @@
+import { ThemeDialogContent } from "../dialogs";
 import type { Command } from "./types";
 
 
@@ -47,7 +48,10 @@ export const COMMANDS: Command[]=[
         description: "Select a theme",
         value: "/themes",
         action: (ctx) => {
-            ctx.toast.show({ message: "Selecting a theme"});
+            ctx.dialog.open({
+                title:"Select Theme",
+                children: <ThemeDialogContent />
+            })
         },
     },
     {
