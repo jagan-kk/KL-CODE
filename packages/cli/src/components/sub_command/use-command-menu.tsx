@@ -3,6 +3,7 @@ import type { ScrollBoxRenderable } from "@opentui/core";
 import { useKeyboard } from "@opentui/react";
 import { getFilteredCommands } from "./filter-commands";
 import type { Command } from "./types"
+import { useKeyboardLayer } from "../../providers/keyboard-layer";
 
 
 type UseCommandMenuReturn ={
@@ -20,11 +21,16 @@ export function useCommandMenu(): UseCommandMenuReturn {
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [showCommandMenu, setshowCommandMenu] = useState(false);
     const scrollRef = useRef<ScrollBoxRenderable>(null);
-
+    const {push,pop,isTopLayer } = useKeyboardLayer();
 
     const commandQuery = showCommandMenu && textValue.startsWith("/") ? textValue.slice(1) : "";
 
     const filteredCommands =useMemo (() => getFilteredCommands(commandQuery),[commandQuery]);
+
+    const close = () => {
+        setshowCommandMenu(false)
+        pop("command");
+    }
 
     const handleContentChange = (text:string) => {
         setTextValue(text);
@@ -38,8 +44,12 @@ export function useCommandMenu(): UseCommandMenuReturn {
         const prefix = text.startsWith("/") ? text.slice(1): null;
         if (prefix!==null && !prefix.includes(" ")) {
             setshowCommandMenu(true);
+            push("command",() => {
+                close();
+                return true;
+            });
         }else{
-            setshowCommandMenu(false);
+            close()
         }
         };
 
@@ -47,7 +57,7 @@ export function useCommandMenu(): UseCommandMenuReturn {
         const resolveCommand = (index:number): Command | undefined => {
             const command = filteredCommands[index];
             if(command) {
-                setshowCommandMenu(false);
+                close()
 
             }
             return command;
@@ -55,11 +65,11 @@ export function useCommandMenu(): UseCommandMenuReturn {
         };
 
          useKeyboard((key)=> {
-            if (!showCommandMenu) return;
+            if (!showCommandMenu || !isTopLayer("command")) return;
 
             if (key.name == "escape") {
                 key.preventDefault();
-                setshowCommandMenu(false);
+                close()
 
             }
             else if (key.name ==="up" ){
@@ -78,11 +88,11 @@ export function useCommandMenu(): UseCommandMenuReturn {
             else if (key.name ==="down") {
                 key.preventDefault();
                 setSelectedIndex((i:number) =>{
-                    if (getFilteredCommands.length ===0) {
+                    if (filteredCommands.length ===0) {
                         return 0;
                     }
 
-                    const newIndex =Math.min(getFilteredCommands.length-1,i+1);
+                    const newIndex =Math.min(filteredCommands.length-1,i+1);
                     const sb = scrollRef.current;
                     if (sb) {
                         const viewportHeight = sb.viewport.height;
