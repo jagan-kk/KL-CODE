@@ -2,6 +2,7 @@ import { useCallback,useRef,useState, type ReactNode } from "react";
 import { InputRenderable, TextAttributes, type ScrollBoxRenderable } from "@opentui/core";
 import { useKeyboard} from "@opentui/react"
 import { useKeyboardLayer } from "../providers/keyboard-layer";
+import { useTheme } from "../providers/theme";
 
 
 const MAX_VISIBLE_ITEMS=6   
@@ -33,7 +34,7 @@ export function DialogSearchList<T>({
     const inputRef=useRef<InputRenderable>(null);
     const scrollRef = useRef<ScrollBoxRenderable>(null);
     const { isTopLayer }= useKeyboardLayer();
-    //const {}
+    const {colors} = useTheme();
 
     const handleContentChange = useCallback(()=> {
         const text = inputRef.current?.value ??"";
@@ -113,7 +114,7 @@ export function DialogSearchList<T>({
                                         flexDirection="row"
                                         height={1}
                                         overflow="hidden"
-                                        backgroundColor={isSelected? "#89b4fa":undefined}
+                                        backgroundColor={isSelected? colors.selection:undefined}
                                         onMouseMove={()=>{
                                             setSelectedIndex(i);
                                             if (onHighlight) onHighlight(item);
