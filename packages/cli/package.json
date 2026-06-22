@@ -7,6 +7,7 @@
     "dev": "bun run --watch src/index.tsx"
   },
   "devDependencies": {
+    "@KL-CODE/server":"workspace:*",
     "@types/bun": "latest",
     "@types/react": "^19.2.17"
   },
@@ -14,10 +15,12 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@KL-CODE/shared":"workspace:*",
     "@opentui/core": "^0.4.1",
     "@opentui/react": "^0.4.1",
     "opentui-spinner": "^0.0.7",
     "react": "^19.2.6",
+    "hono": "^4.12.26",
     "react-router": "^8.0.1"
   }
 }

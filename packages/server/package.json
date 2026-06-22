@@ -1,0 +1,17 @@
+{
+    "name": "@KL-CODE/server",
+    "type": "module",
+    "private": true,
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "scripts": {
+        "dev": "bun run --hot src/index.ts"
+    },
+    "dependencies": {
+        "@hono/zod-validator": "^0.8.0",
+        "@KL-CODE/shared": "workspace:*",
+        "hono": "^4.12.26",
+        "zod": "^4.4.3"
+    }
+}
