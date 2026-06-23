@@ -1,4 +1,4 @@
-import { useEffect,useMemo,useRef} from "react"
+import { useEffect,useMemo,useRef,useState} from "react"
 import {z} from "zod"
 import { DEFAULT_CHAT_MODEL_ID } from "@KL-CODE/shared"
 import {useNavigate,useLocation} from "react-router"
@@ -19,6 +19,7 @@ export function Newsession() {
     const location =useLocation()
     const { colors} =useTheme()
     const toast =useToast();
+    const [isCreating, setIsCreating] = useState(false);
     const hasStartedRef = useRef(false);
 
     const state = useMemo(()=> {
@@ -37,6 +38,7 @@ export function Newsession() {
     useEffect(()=> {
         if (!state || hasStartedRef.current) return;
         hasStartedRef.current = true;
+        setIsCreating(true);
         let ignore = false;
         const createSession = async ()=> {
             try {
@@ -58,6 +60,7 @@ export function Newsession() {
                     throw new Error(await getErrorMessage(res))
                 }
                 const session = await res.json();
+                setIsCreating(false);
                 navigate(
                     `/sessions/${session.id}`,
                     {replace:true,state:{session}}
@@ -65,6 +68,7 @@ export function Newsession() {
 
             } catch (error) {
                 if(ignore) return
+                setIsCreating(false);
                 toast.show({
                     variant:"error",
                     message:error instanceof Error ? error.message : "Failed to create session",
@@ -83,7 +87,7 @@ export function Newsession() {
     if(!state) return null;
 
     return (
-        <SessionShell onSubmit={() => {}} >
+        <SessionShell onSubmit={() => {}} loading={isCreating}>
             <UserMessage message={state.message}/>
         </SessionShell>
     )
