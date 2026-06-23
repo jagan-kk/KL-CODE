@@ -5,7 +5,7 @@ import {createContext, useContext,useState,useCallback} from "react"
 import type { ReactNode} from "react"
 import { type ThemeColors,type Theme, DEFAULT_THEME,THEMES} from "../../theme"
 
-const CONFIG_DIR=join(homedir(),".KL-CODE");
+const CONFIG_DIR=join(homedir(),".kl-code");
 const THEME_PREFERENCES_PATH = join(CONFIG_DIR, "preferences.json");
 
 type ThemePreferences={
