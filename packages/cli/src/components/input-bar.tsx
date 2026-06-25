@@ -65,6 +65,7 @@ export function InputBar({ onSubmit, disabled = false }:Props) {
         if (text.length ===0) return;
 
         onSubmit(text);
+        textarea.setText("");
     },[])
 
     const handleCommand = useCallback((

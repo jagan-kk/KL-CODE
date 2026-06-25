@@ -29,7 +29,7 @@ export const SUPPORTED_CHAT_MODELS =[ {
         },
     },
     {
-        id: "openai/gpt-4o",
+        id: "nvidia/nemotron-3-super-120b-a12b:free",
         provider:"openrouter",
         pricing: {
             inputUsdPerMillionTokens:2.5,
@@ -55,5 +55,5 @@ export function findSupportedChatModel(modelId:string){
 
 }
 
-export const DEFAULT_CHAT_MODEL_ID:SupportedChatModelId="gpt-5.4-mini";
+export const DEFAULT_CHAT_MODEL_ID:SupportedChatModelId="nvidia/nemotron-3-super-120b-a12b:free";
 
