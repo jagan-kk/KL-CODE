@@ -8,6 +8,7 @@ type Props = {
     onSubmit: (text:string)=> void;
     inputDisabled?:boolean;
     loading?:boolean;
+    
 }
 
 export function SessionShell({

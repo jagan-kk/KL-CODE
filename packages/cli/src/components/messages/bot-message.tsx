@@ -1,26 +1,50 @@
 import { TextAttributes } from "@opentui/core";
 import { useTheme } from "../../providers/theme";
+import type { ClientMessagePort } from "../../hooks/use-chat";
+import { Mode } from "@KL-CODE/database/enums";
 
 type Props = {
-    content:string;
+    parts:ClientMessagePort[]
     model:string;
+    mode:Mode
+    duration?:string;
+    streaming?:boolean;
 }
 
-export function BotMessage({content,model}:Props) {
+export function BotMessage({parts,model,mode,duration,streaming}:Props) {
     const { colors } = useTheme();
+
+    const text=parts
+    .filter((p)=>p.type ==="text")
+    .map((p)=>p.text)
+    .join("")
 
     return (
         <box width="100%" alignItems="center">
             <box paddingY={1} width="100%">
                 <box paddingX={3} width="100%">
-                    <text>{content}</text>
+                    <text>{text}</text>
                 </box>
 
                 <box paddingX={3} paddingBottom={1} gap={1} width="100%">
                     <box flexDirection="row" gap={2}>
-                        <text fg={colors.primary}>◉</text>
-                        <text>{model}</text>
-                    </box>
+                        <text fg={mode===Mode.PLAN ? colors.planMode:colors.primary}>◉</text>
+                        <box flexDirection="row" gap={1}>
+                            <text>{mode===Mode.PLAN ? "Plan":"Build"}</text>
+                            <text attributes={TextAttributes.DIM} fg={colors.dimSeparator}>{'>'}</text>
+                            <text attributes={TextAttributes.DIM}>{model}</text>
+                            {
+                                duration && (
+                                    <>
+                                    <text attributes={TextAttributes.DIM} fg={colors.dimSeparator}>{'>'}</text>
+
+                                    <text attributes={TextAttributes.DIM}>{duration}</text>
+                                    
+                                    </>
+                                )
+                            }
+                        </box>
+                        </box>
                 </box>
             </box>
 
