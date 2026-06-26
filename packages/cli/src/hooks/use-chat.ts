@@ -22,7 +22,8 @@ export type Message = | {id:string;role:"user";content:string;mode:Mode;model:Su
                         mode:Mode;
                         model:SupportedChatModelId;
                         parts:ClientMessagePort[];
-                        duration?:string
+                        duration?:string;
+                        interruped?:boolean;
                     }
 
                     |
@@ -46,6 +47,7 @@ export type Message = | {id:string;role:"user";content:string;mode:Mode;model:Su
                 mode:Mode;
                 model:SupportedChatModelId;
                 parts:ClientMessagePort[];
+                interrupedCaptured:boolean
             };
 
 
@@ -104,7 +106,36 @@ export type Message = | {id:string;role:"user";content:string;mode:Mode;model:Su
 
             },[isActiveRequest]);
 
-            const clearStream = useCallback(
+                const captureInterruptedMessage =useCallback((
+                    activeStream:ActiveStream
+                )=> {
+                    if( 
+                        activeStream.interrupedCaptured ||
+                        activeStream.parts.length ===0
+                    ) {
+                        return;
+                    }
+                    activeStream.interrupedCaptured=true;
+                    const parts =[...activeStream.parts];
+                    const fullText =parts.filter((p)=> p.type==="text")
+                    .map((p)=> p.text)
+                    .join("");
+                    updateMessages((prev)=> [
+                        ...prev,
+                        {
+                            id:crypto.randomUUID(),
+                            role:"assistant",
+                            content:fullText,
+                            mode:activeStream.mode,
+                            model:activeStream.model,
+                            parts,
+                            interrupted:true
+                        }
+                    ])
+                },[])
+
+
+                const clearStream = useCallback(
                 (requestId:string)=> {
                     if(!isActiveRequest(requestId)) return;
 
@@ -225,6 +256,7 @@ export type Message = | {id:string;role:"user";content:string;mode:Mode;model:Su
                     mode,
                     model,
                     parts: [],
+                    interrupedCaptured:false
                 }
 
                 activeStreamRef.current = activeStream;
@@ -254,6 +286,19 @@ export type Message = | {id:string;role:"user";content:string;mode:Mode;model:Su
                 }
             },[clearStream,handleStream,isActiveRequest,updateMessages]);
 
+            const stopeActiveStream = useCallback((
+                capturedPartial:boolean
+            )=>{
+                const activeStream = activeStreamRef.current;
+                if(!activeStream) return;
+                if(capturedPartial){
+                    captureInterruptedMessage(activeStream);
+                }
+                activeStreamRef.current=null;
+                setStreaming({status:"idle"});
+                activeStream.controller.abort(); 
+            },[captureInterruptedMessage]);
+
             const resume = useCallback(async ( {mode,model}:Omit<SubmitParams, "userText">)=>{
                 await runStream ({
                     mode,
@@ -282,6 +327,8 @@ export type Message = | {id:string;role:"user";content:string;mode:Mode;model:Su
             const submit = useCallback( async(
                 {userText,mode,model}: SubmitParams
             )=> {
+
+                stopeActiveStream(true);
                 const userMessage:Message = {
                     id:crypto.randomUUID(),
                     role:"user",
@@ -305,16 +352,16 @@ export type Message = | {id:string;role:"user";content:string;mode:Mode;model:Su
                         )
                     }
                 })
-            },[runStream,sessionId,updateMessages])
+            },[runStream,sessionId,updateMessages,stopeActiveStream])
 
             const abort = useCallback(()=> {
-                const activeStream = activeStreamRef.current;
-                if(!activeStream) return
-                
-                activeStreamRef.current = null;
-                setStreaming({status:"idle"});
-                activeStream.controller.abort();
-            },[])
+                stopeActiveStream(false);
+            },[stopeActiveStream]);
 
-                return { messages,streaming,submit,abort}
+            const interrupt = useCallback(() => {
+                stopeActiveStream(true);
+
+            },[stopeActiveStream])
+
+                return { messages,streaming,submit,abort,interrupt}
             }
