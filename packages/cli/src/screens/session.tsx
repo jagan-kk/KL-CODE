@@ -6,10 +6,13 @@ import {useState,useEffect,useMemo} from "react"
 import { UserMessage,BotMessage,ErrorMessage } from "../components/messages";
 import { useToast} from "../providers/toast"
 import { apiClient } from "../lib/api-clients";
+import { useKeyboard } from "@opentui/react";
 import { getErrorMessage } from "../lib/http-errors";
 import prettyMs from "pretty-ms";
+import {MessageStatus} from "@KL-CODE/database/enums"
 import { DEFAULT_CHAT_MODEL_ID, type SupportedChatModelId } from "@KL-CODE/shared";
 import { useChat } from "../hooks/use-chat";
+import { useKeyboardLayer } from "../providers/keyboard-layer";
 import type { Message , ClientMessagePort} from "../hooks/use-chat"
 
 
@@ -44,6 +47,7 @@ function mapDbMessages(dbMessages:SessionData["messages"]):Message[] {
             mode:m.mode,
             parts:[{type:"text",text:m.content}],
             ...(m.duration !=null ? {duration:prettyMs(m.duration*1000)} : {}),
+            interruped:m.status===MessageStatus.INTERRUPTED,
 
         }
     })
@@ -73,18 +77,27 @@ function ChatMessage(
     mode={msg.mode}
     duration={msg.duration}
     streaming={false}
+    interrupted={msg.interruped}
     />;
 
 }
 
 function SessionChat({session} : { session:SessionData}) {
     const [initialMessages] = useState(()=>mapDbMessages(session.messages));
-    const { messages,streaming,submit,abort} = useChat(session.id,initialMessages);
+    const {isTopLayer} =useKeyboardLayer();
+    const { messages,streaming,submit,abort,interrupt} = useChat(session.id,initialMessages);
 
 
     useEffect(()=> {
         return ()=> abort ();
-    },[abort])
+    },[abort]);
+
+    useKeyboard((key)=> {
+        if(key.name ==="escape" && isTopLayer("base") && streaming.status === "streaming") {
+            key.preventDefault();
+            interrupt();
+        }
+    })
 
     return (
         <SessionShell
@@ -92,6 +105,7 @@ function SessionChat({session} : { session:SessionData}) {
             submit({userText:text,mode:"BUILD",model:DEFAULT_CHAT_MODEL_ID})
         }
         loading={streaming.status==="streaming"}
+        interruptable={streaming.status === "streaming"}
         >
             {messages.map((msg)=> (
                 <ChatMessage key={msg.id} msg={msg} />
