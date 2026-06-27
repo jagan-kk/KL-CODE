@@ -132,7 +132,7 @@ export type Message = | {id:string;role:"user";content:string;mode:Mode;model:Su
                             interrupted:true
                         }
                     ])
-                },[])
+                },[updateMessages])
 
 
                 const clearStream = useCallback(

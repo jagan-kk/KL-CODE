@@ -153,8 +153,8 @@ export function Session() {
                 });
                 if(ignore) return;
                 if (!res.ok) throw new Error(await getErrorMessage(res));
-                const resolved= await res.json();
-                setSession(await res.json());
+                const resolved = await res.json();
+                setSession(resolved);
 
             }catch (err){
                 if(ignore) return;
