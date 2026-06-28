@@ -1,4 +1,4 @@
-import {openai} from "@ai-sdk/openai"
+import {openai, createOpenAI} from "@ai-sdk/openai"
 import {openrouter} from "@openrouter/ai-sdk-provider"
 import {
     findSupportedChatModel,
@@ -12,6 +12,13 @@ import type { LanguageModel } from "ai";
 
 type OpenAIModelId=Extract<SupportedChatModel,{provider:"openai"}>["id"];
 type OpenRouterModelId=Extract<SupportedChatModel,{provider:"openrouter"}>["id"];
+type OllamaModelId=Extract<SupportedChatModel,{provider:"ollama"}>["id"];
+
+const ollamaProvider = createOpenAI({
+    baseURL: "http://localhost:11434/v1",
+    name: "ollama",
+    apiKey: "ollama",
+});
 
 export type ResolvedModel ={
     model:LanguageModel;
@@ -37,7 +44,7 @@ const OPENROUTER_PROVIDER_OPTIONS: Partial<Record<OpenRouterModelId, ProviderOpt
     },
   },
 
-  "google/gemini-2.0-flash-001": {
+  "qwen/qwen3-coder:free": {
     openrouter: {
       reasoning: {
         max_tokens: 10000,
@@ -68,6 +75,15 @@ function resolveOpenRouterModel(modelId:OpenRouterModelId): ResolvedModel {
     }
 }
 
+function resolveOllamaModel(modelId:OllamaModelId): ResolvedModel {
+    const localModelId = modelId.replace("ollama/", "") as OllamaModelId
+    return {
+        model:ollamaProvider.chat(localModelId),
+        provider:"ollama",
+        modelId,
+    }
+}
+
 function resolveSupportedChatModel(model:SupportedChatModel):ResolvedModel {
     const provider = model.provider
 
@@ -76,6 +92,8 @@ function resolveSupportedChatModel(model:SupportedChatModel):ResolvedModel {
             return resolveOpenAIModel(model.id)
         case "openrouter":
             return resolveOpenRouterModel(model.id)
+        case "ollama":
+            return resolveOllamaModel(model.id)
         default:
             return assertUnsupportedProvider(provider);
 

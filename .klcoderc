@@ -1,0 +1,29 @@
+{
+  "permission": {
+    "bash": "allow",
+    "editFile": "allow",
+    "writeFile": "allow",
+    "applyPatch": "allow",
+    "readFile": "allow",
+    "webfetch": "allow",
+    "websearch": "allow",
+    "lsp": "ask",
+    "question": "allow",
+    "todowrite": "allow"
+  },
+  "agents": [
+    {
+      "name": "debug",
+      "mode": "BUILD",
+      "description": "Debug mode with diagnostic tools",
+      "tools": ["readFile", "grep", "glob", "bash", "webfetch", "question"]
+    }
+  ],
+  "mcpServers": {
+    "example": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."],
+      "disabled": true
+    }
+  }
+}

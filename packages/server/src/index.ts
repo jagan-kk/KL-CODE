@@ -4,6 +4,7 @@ import sessions from "./routes/session"
 import { sentry } from "@sentry/hono/bun";
 import * as Sentry from "@sentry/hono/bun";
 import chat from "./routes/chat"
+import undo from "./routes/undo"
 
 const app =new Hono()
 
@@ -59,7 +60,7 @@ app.onError((error,c) => {
     return c.json({error: "Internal server error"},500);
 });
 
-const routes = app.route("/sessions",sessions).route("/chat",chat);
+const routes = app.route("/sessions",sessions).route("/chat",chat).route("/undo",undo);
 
 export type AppType = typeof routes
 

@@ -22,10 +22,27 @@ export type ClientToolCallPart={
     status:"calling"|"done";
 }
 
+export type ClientQuestionPart = {
+    type: "question";
+    questionId: string;
+    header: string;
+    question: string;
+    options?: { label: string; description: string }[];
+    multiple: boolean;
+    answered?: boolean;
+}
+
+export type ClientTodoPart = {
+    type: "todo";
+    todos: { content: string; status: string; priority: string }[];
+}
+
 export type ClientMessagePort = 
     | {type: "reasoning";text:string}
     | ClientToolCallPart
-    | {type: "text"; text:string};
+    | {type: "text"; text:string}
+    | ClientQuestionPart
+    | ClientTodoPart;
 
 export type Message = | {id:string;role:"user";content:string;mode:Mode;model:SupportedChatModelId} |
                     {
@@ -76,15 +93,25 @@ export type Message = | {id:string;role:"user";content:string;mode:Mode;model:Su
                 request:(controller:AbortController)=>Promise<ClientResponse<unknown>>;
             };
 
+            type AnswerQuestionFn = (questionId: string, answers: string[]) => Promise<void>;
+
+            export type UsageStats = {
+                inputChars: number;
+                outputChars: number;
+                inputTokens: number;
+                outputTokens: number;
+            };
+
             export function useChat(
                 sessionId:string,
                 initialMessages:Message[],
-
             ){
                 const [messages,setMessages] = useState<Message[]>(initialMessages);
                 const [streaming,setStreaming] = useState<StreamingState> ({
                     status:"idle"
                 });
+                const [usage, setUsage] = useState<UsageStats>({ inputChars: 0, outputChars: 0, inputTokens: 0, outputTokens: 0 });
+                const usageRef = useRef(usage);
                 const activeStreamRef = useRef<ActiveStream | null>(null);
 
                 const updateMessages = useCallback((
@@ -259,6 +286,11 @@ export type Message = | {id:string;role:"user";content:string;mode:Mode;model:Su
                                 .map((p) => p.text)
                                 .join("")
 
+                                setUsage((prev) => ({
+                                    ...prev,
+                                    outputChars: prev.outputChars + fullText.length,
+                                    outputTokens: prev.outputTokens + Math.ceil(fullText.length / 4),
+                                }));
 
                                 updateMessages((prev) => [
                                     ...prev,
@@ -272,7 +304,7 @@ export type Message = | {id:string;role:"user";content:string;mode:Mode;model:Su
                                         parts:[...parts]
 
                                     }
-                        
+                         
                                 ])
                                 break;
                             }
@@ -287,6 +319,28 @@ export type Message = | {id:string;role:"user";content:string;mode:Mode;model:Su
                                 ]);
                                 break;
 
+                            case "question":
+                                parts.push({
+                                    type: "question",
+                                    questionId: event.questionId,
+                                    header: event.header,
+                                    question: event.question,
+                                    options: event.options,
+                                    multiple: event.multiple,
+                                });
+                                emitParts(activeStream.requestId, parts);
+                                break;
+
+                            case "permission-request":
+                                parts.push({
+                                    type: "tool-call",
+                                    id: event.toolCallId,
+                                    name: event.toolName,
+                                    args: event.args,
+                                    status: "calling",
+                                });
+                                emitParts(activeStream.requestId, parts);
+                                break;
 
                         }
 
@@ -348,6 +402,19 @@ export type Message = | {id:string;role:"user";content:string;mode:Mode;model:Su
                 activeStream.controller.abort(); 
             },[captureInterruptedMessage]);
 
+            const answerQuestion = useCallback(async (questionId: string, answers: string[]) => {
+                try {
+                    const baseUrl = process.env.API_URL ?? "http://localhost:3000";
+                    await fetch(`${baseUrl}/chat/${sessionId}/answer`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ questionId, answers }),
+                    });
+                } catch {
+                    // ignore errors for answer submission
+                }
+            }, [sessionId]);
+
             const resume = useCallback(async ( {mode,model}:Omit<SubmitParams, "userText">)=>{
                 await runStream ({
                     mode,
@@ -378,6 +445,11 @@ export type Message = | {id:string;role:"user";content:string;mode:Mode;model:Su
             )=> {
 
                 stopeActiveStream(true);
+                setUsage((prev) => ({
+                    ...prev,
+                    inputChars: prev.inputChars + userText.length,
+                    inputTokens: prev.inputTokens + Math.ceil(userText.length / 4),
+                }));
                 const userMessage:Message = {
                     id:crypto.randomUUID(),
                     role:"user",
@@ -412,5 +484,9 @@ export type Message = | {id:string;role:"user";content:string;mode:Mode;model:Su
 
             },[stopeActiveStream])
 
-                return { messages,streaming,submit,abort,interrupt}
+            const addMessage = useCallback((message: Message) => {
+                updateMessages((prev) => [...prev, message]);
+            }, [updateMessages]);
+
+                return { messages,streaming,submit,abort,interrupt, answerQuestion, addMessage, usage}
             }

@@ -4,6 +4,8 @@ import type { ToastContextValue } from "../../providers/toast";
 import { Mode } from "@KL-CODE/database/enums";
 
 
+import type { Message } from "../../hooks/use-chat";
+
 export type CommandContext = {
     exit: () => void;
     toast: ToastContextValue;
@@ -12,6 +14,10 @@ export type CommandContext = {
     mode:Mode;
     setMode:(mode:Mode)=> void;
     setModel:(model:SupportedChatModelId) =>void;
+    showReasoning:boolean;
+    setShowReasoning:(show:boolean)=>void;
+    messages?:Message[];
+    sessionId?:string;
 };
 
 export type Command = {

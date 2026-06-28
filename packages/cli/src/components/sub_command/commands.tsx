@@ -3,6 +3,8 @@ import { TextAttributes, type ScrollBoxRenderable } from "@opentui/core"
 import { useKeyboard } from "@opentui/react"
 import { format } from "date-fns"
 import { useNavigate } from "react-router"
+import { writeFile } from "fs/promises"
+import { join } from "path"
 import {AgentDialogContent,ModelDialogContent,SessionDialogContent,ThemeDialogContent } from "../dialogs";
 import { useDialog } from "../../providers/dialog";
 import { useKeyboardLayer } from "../../providers/keyboard-layer";
@@ -101,6 +103,15 @@ function SessionList({ sessions }: { sessions: Session[] }) {
     )
 }
 
+function buildExportMarkdown(messages: { role: string; content: string }[]): string {
+    const lines: string[] = ["# KL-CODE Session Export", "", `Exported: ${new Date().toISOString()}`, "", "---", ""];
+    for (const msg of messages) {
+        const role = msg.role === "user" ? "**User**" : msg.role === "assistant" ? "**Assistant**" : "**Error**";
+        lines.push(`### ${role}`, "", msg.content, "", "---", "");
+    }
+    return lines.join("\n");
+}
+
 export const COMMANDS: Command[] = [
     {
         name: "new",
@@ -170,6 +181,42 @@ export const COMMANDS: Command[] = [
                 title: "Select Theme",
                 children: <ThemeDialogContent />
             })
+        },
+    },
+    {
+        name: "thinking",
+        description: "Toggle reasoning visibility",
+        value: "/thinking",
+        action: (ctx) => {
+            ctx.setShowReasoning(!ctx.showReasoning);
+            ctx.toast.show({
+                message: `Reasoning ${ctx.showReasoning ? "shown" : "hidden"}`,
+            });
+        },
+    },
+    {
+        name: "export",
+        description: "Export session to Markdown file",
+        value: "/export",
+        action: async (ctx: CommandContext) => {
+            if (!ctx.messages || !ctx.sessionId) {
+                ctx.toast.show({ variant: "error", message: "No active session to export" });
+                return;
+            }
+            ctx.toast.show({ message: "Exporting session..." });
+            try {
+                const md = buildExportMarkdown(
+                    ctx.messages.map((m) => ({ role: m.role, content: m.content }))
+                );
+                const filename = `kl-code-session-${ctx.sessionId.slice(0, 8)}-${Date.now()}.md`;
+                await writeFile(join(process.cwd(), filename), md, "utf-8");
+                ctx.toast.show({ message: `Exported to ${filename}` });
+            } catch (error) {
+                ctx.toast.show({
+                    variant: "error",
+                    message: error instanceof Error ? error.message : "Export failed",
+                });
+            }
         },
     },
     {

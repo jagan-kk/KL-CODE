@@ -2,8 +2,9 @@ import {tool} from "ai";
 import {z} from "zod"
 import {resolve,relative,dirname} from "path"
 import { readFile,writeFile,mkdir } from "fs/promises";
+import { recordMutation } from "../lib/undo-redo";
 
-export function createWriteFileTool(cwd:string) {
+export function createWriteFileTool(cwd:string, sessionId?: string) {
     return tool ({
         description:
         "Create or overwrite a file in the project. create parent directories if they don't exist.",
@@ -20,8 +21,24 @@ export function createWriteFileTool(cwd:string) {
                 return { error:"path is outsid the project directory"}
             }
             try {
+                let previousContent: string | null = null;
+                try {
+                    previousContent = await readFile(resolved, "utf-8");
+                } catch {
+                    // File doesn't exist yet
+                }
+
                 await mkdir(dirname(resolved),{recursive:true});
                 await writeFile(resolved,content,"utf-8");
+
+                if (sessionId) {
+                    recordMutation(sessionId, {
+                        type: previousContent !== null ? "write" : "write",
+                        path: relative(cwd, resolved),
+                        previousContent,
+                        newContent: content,
+                    });
+                }
 
                 return {
                     success:true as const,

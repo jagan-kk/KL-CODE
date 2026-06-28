@@ -19,3 +19,17 @@ export {
 
 } from "./schemas"
 
+export {
+    klConfigSchema,
+    permissionLevelSchema,
+    mcpServerConfigSchema,
+    agentConfigSchema,
+    mergeConfig,
+    getPermission,
+    DEFAULT_CONFIG,
+    type KLConfig,
+    type PermissionLevel,
+    type MCPServerConfig,
+    type AgentConfig,
+} from "./config"
+
