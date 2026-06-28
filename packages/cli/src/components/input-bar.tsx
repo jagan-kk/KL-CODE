@@ -1,5 +1,5 @@
 import { useRef, useCallback,useEffect } from "react";
-import { TextareaRenderable } from "@opentui/core";
+import { TextareaRenderable,type KeyEvent } from "@opentui/core";
 import { useKeyboard,useRenderer } from "@opentui/react";
 import type { KeyBinding } from "@opentui/core";
 import { StatusBar} from "./status-bar";
@@ -60,7 +60,7 @@ export function InputBar({ onSubmit, disabled = false }:Props) {
         handleContentChange(textarea.plainText);
     }, [])
 
-    const handleSubmit = useCallback(()=> {
+    const handleSubmit = () => {
         if (disabled) return;
 
         const textarea= textareaRef.current;
@@ -71,7 +71,7 @@ export function InputBar({ onSubmit, disabled = false }:Props) {
 
         onSubmit(text);
         textarea.setText("");
-    },[])
+    }
 
     const handleCommand = useCallback((
         command: Command | undefined
@@ -111,6 +111,16 @@ export function InputBar({ onSubmit, disabled = false }:Props) {
 
         textarea.onSubmit =() => {
             onSubmitRef.current();
+        };
+
+        const ta = textarea as unknown as { handleKeyPress: (key: KeyEvent) => boolean };
+        const originalHandleKeyPress = ta.handleKeyPress.bind(textarea);
+        ta.handleKeyPress = (key: KeyEvent) => {
+            if (key.name === "tab") {
+                toggleMode();
+                return true;
+            }
+            return originalHandleKeyPress(key);
         };
     }, []);
 

@@ -12,7 +12,20 @@ import {
 } from "@KL-CODE/shared"
 
 
-export type ClientMessagePort ={ type:"text";text:string};
+
+export type ClientToolCallPart={
+    type:"tool-call";
+    id:string;
+    name:string;
+    args:Record<string,unknown>;
+    result?:string;
+    status:"calling"|"done";
+}
+
+export type ClientMessagePort = 
+    | {type: "reasoning";text:string}
+    | ClientToolCallPart
+    | {type: "text"; text:string};
 
 export type Message = | {id:string;role:"user";content:string;mode:Mode;model:SupportedChatModelId} |
                     {
@@ -190,6 +203,42 @@ export type Message = | {id:string;role:"user";content:string;mode:Mode;model:Su
                         }
 
                         switch (event.type) {
+                            case "reasoning-delta": {
+                                const last = parts[parts.length-1]
+                                if(last&& last.type ==="reasoning") {
+                                    last.text+=event.text;
+
+                                }else {
+                                    parts.push({type:"reasoning",text:event.text})
+                                }
+                                emitParts(activeStream.requestId,parts)
+                                break;
+                            }
+                            case "tool-call":
+                                parts.push({
+                                    type:"tool-call",
+                                    id:event.toolCallId,
+                                    name:event.toolName,
+                                    args:event.args,
+                                    status:"calling",
+                                })
+                                emitParts(activeStream.requestId,parts);
+                                break;
+
+                            case "tool-result": {
+                                const tc=parts.find(
+                                    (p):p is ClientToolCallPart =>p.type==="tool-call" && p.id === event.toolCallId
+                                );
+                                if(tc) {
+                                    tc.result=event.result;
+                                    tc.status="done";
+                                }
+                                emitParts(activeStream.requestId,parts)
+                                break;
+                                
+                            }
+
+
                             case "text-delta": {
                                 const last = parts[parts.length-1];
                                 if (last && last.type ==="text") {

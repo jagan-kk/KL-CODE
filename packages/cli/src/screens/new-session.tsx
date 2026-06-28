@@ -1,6 +1,6 @@
 import { useEffect,useMemo,useRef,useState} from "react"
 import {z} from "zod"
-import { DEFAULT_CHAT_MODEL_ID } from "@KL-CODE/shared"
+import { Mode } from "@KL-CODE/database"
 import {useNavigate,useLocation} from "react-router"
 import { useTheme } from "../providers/theme"
 import { SessionShell } from "../components/session-shell"
@@ -12,6 +12,8 @@ import { getErrorMessage } from "../lib/http-errors"
 
 const newSessionStateSchema = z.object({
     message:z.string(),
+    mode:z.enum(Mode),
+    model:z.string(),
 })
 
 export function Newsession() {
@@ -49,8 +51,8 @@ export function Newsession() {
                     initialMessage: {
                         role:"USER",
                         content:state.message,
-                        mode:"BUILD",
-                        model:DEFAULT_CHAT_MODEL_ID,
+                        mode: state.mode,
+                        model: state.model
                     }
                     }
                 })
@@ -88,7 +90,7 @@ export function Newsession() {
 
     return (
         <SessionShell onSubmit={() => {}} loading={isCreating}>
-            <UserMessage message={state.message}/>
+            <UserMessage message={state.message} mode={state.mode}/>
         </SessionShell>
     )
 

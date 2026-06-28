@@ -131,6 +131,7 @@ export const COMMANDS: Command[] = [
         description: "Select session",
         value: "/sessions",
         action: async (ctx: CommandContext) => {
+            ctx.toast.show({ message: "Loading sessions..." });
             try {
                 const res = await apiClient.sessions.$get();
                 if (!res.ok) {
