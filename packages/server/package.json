@@ -6,13 +6,16 @@
         ".": "./src/index.ts"
     },
     "scripts": {
-        "dev": "bun run --hot src/index.ts"
+        "dev": "bun run --hot src/index.ts",
+        "build": "bun build src/index.ts --outdir dist --target bun",
+        "postinstall": "bun run --cwd ../database db:generate"
     },
     "dependencies": {
         "@KL-CODE/database": "workspace:*",
         "@KL-CODE/shared": "workspace:*",
         "@ai-sdk/anthropic": "^3.0.85",
         "@ai-sdk/openai": "^3.0.74",
+        "@ai-sdk/provider-utils": "^5.0.0",
         "@hono/zod-validator": "^0.8.0",
         "@openrouter/ai-sdk-provider": "^2.9.1",
         "@sentry/bun": "^10.60.0",

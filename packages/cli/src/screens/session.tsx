@@ -10,7 +10,8 @@ import { useKeyboard } from "@opentui/react";
 import { getErrorMessage } from "../lib/http-errors";
 import prettyMs from "pretty-ms";
 import {MessageStatus} from "@KL-CODE/database/enums"
-import { DEFAULT_CHAT_MODEL_ID, type SupportedChatModelId } from "@KL-CODE/shared";
+import { usePromptConfig } from "../providers/prompt-config";
+import { messagePartsSchema, type SupportedChatModelId } from "@KL-CODE/shared";
 import { useChat } from "../hooks/use-chat";
 import { useKeyboardLayer } from "../providers/keyboard-layer";
 import type { Message , ClientMessagePort} from "../hooks/use-chat"
@@ -39,13 +40,19 @@ function mapDbMessages(dbMessages:SessionData["messages"]):Message[] {
                 model:m.model as SupportedChatModelId,
             };
         }
+
+        const parsedParts =m.parts == null?null:messagePartsSchema.safeParse(m.parts);
+        const parts:ClientMessagePort[]=parsedParts?.success ?
+        parsedParts.data.map((p)=> 
+        p.type==="tool-call" ? { ...p,status:"done" as const} :p,):[]
+
         return {
             id:m.id,
             role:"assistant",
             content:m.content,
             model:m.model as SupportedChatModelId,
             mode:m.mode,
-            parts:[{type:"text",text:m.content}],
+            parts,
             ...(m.duration !=null ? {duration:prettyMs(m.duration*1000)} : {}),
             interruped:m.status===MessageStatus.INTERRUPTED,
 
@@ -63,7 +70,7 @@ function ChatMessage(
     }
 ){
     if(msg.role==="user") {
-        return <UserMessage message={msg.content} />;
+        return <UserMessage message={msg.content} mode={msg.mode} />;
     }
 
     if(msg.role==="error") {
@@ -84,6 +91,7 @@ function ChatMessage(
 
 function SessionChat({session} : { session:SessionData}) {
     const [initialMessages] = useState(()=>mapDbMessages(session.messages));
+    const {mode,model} = usePromptConfig();
     const {isTopLayer} =useKeyboardLayer();
     const { messages,streaming,submit,abort,interrupt} = useChat(session.id,initialMessages);
 
@@ -102,7 +110,7 @@ function SessionChat({session} : { session:SessionData}) {
     return (
         <SessionShell
         onSubmit ={(text) =>
-            submit({userText:text,mode:"BUILD",model:DEFAULT_CHAT_MODEL_ID})
+            submit({userText:text,mode,model})
         }
         loading={streaming.status==="streaming"}
         interruptable={streaming.status === "streaming"}
@@ -153,8 +161,8 @@ export function Session() {
                 });
                 if(ignore) return;
                 if (!res.ok) throw new Error(await getErrorMessage(res));
-                const resolved= await res.json();
-                setSession(await res.json());
+                const resolved = await res.json();
+                setSession(resolved);
 
             }catch (err){
                 if(ignore) return;

@@ -12,8 +12,17 @@ type SupportedChatModelDefinition ={
 }
 
 export const SUPPORTED_CHAT_MODELS =[ {
-    id: "gpt-5.4-mini",
+    id: "openai/gpt-oss-120b:free",
     provider:"openai",
+    pricing: {
+        inputUsdPerMillionTokens:0.75,
+        outputUsdPerMillionTokens:4.5,
+
+    },
+    },
+    {
+    id: "openai/gpt-oss-120b:free",
+    provider:"openrouter",
     pricing: {
         inputUsdPerMillionTokens:0.75,
         outputUsdPerMillionTokens:4.5,

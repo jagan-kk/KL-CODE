@@ -7,7 +7,7 @@ import {
     type SupportedProvider,
     
 } from "@KL-CODE/shared"
-
+import type { ProviderOptions} from "@ai-sdk/provider-utils"
 import type { LanguageModel } from "ai";
 
 type OpenAIModelId=Extract<SupportedChatModel,{provider:"openai"}>["id"];
@@ -17,7 +17,35 @@ export type ResolvedModel ={
     model:LanguageModel;
     provider:SupportedProvider;
     modelId: SupportedChatModelId;
+    providerOptions?:ProviderOptions
 }
+
+const OPENROUTER_PROVIDER_OPTIONS: Partial<Record<OpenRouterModelId, ProviderOptions>> = {
+  "openai/gpt-oss-120b:free": {
+    openrouter: {
+      reasoning: {
+        max_tokens: 10000,
+      },
+    },
+  },
+
+  "nvidia/nemotron-3-super-120b-a12b:free": {
+    openrouter: {
+      reasoning: {
+        max_tokens: 10000,
+      },
+    },
+  },
+
+  "google/gemini-2.0-flash-001": {
+    openrouter: {
+      reasoning: {
+        max_tokens: 10000,
+      },
+    },
+  },
+};
+
 
 function assertUnsupportedProvider(provider:never): never {
     throw new Error(`Unsupported provider: ${provider}`);
@@ -36,6 +64,7 @@ function resolveOpenRouterModel(modelId:OpenRouterModelId): ResolvedModel {
         model:openrouter(modelId),
         provider:"openrouter",
         modelId,
+        providerOptions:OPENROUTER_PROVIDER_OPTIONS[modelId]
     }
 }
 
