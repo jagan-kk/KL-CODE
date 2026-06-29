@@ -429,16 +429,16 @@ export type Message = | {id:string;role:"user";content:string;mode:Mode;model:Su
                 })
             },[runStream,sessionId]);
 
-            const hasAutoResumedRef =  useRef (false);
-            useEffect (()=> {
-                if(hasAutoResumedRef.current) return;
-                const last = initialMessages[initialMessages.length-1];
-                if(!last || last.role != "user") return ;
+            const autoResumeRef = useRef(false);
 
-                hasAutoResumedRef.current = true;
-                void resume({ mode:last.mode,model: last.model});
-
-            },[initialMessages,resume]);
+            useEffect(() => {
+                if (autoResumeRef.current) return;
+                const lastMessage = messages[messages.length - 1];
+                if (lastMessage?.role === "user") {
+                    autoResumeRef.current = true;
+                    resume({ mode: lastMessage.mode, model: lastMessage.model });
+                }
+            }, [messages, resume]);
 
             const submit = useCallback( async(
                 {userText,mode,model}: SubmitParams

@@ -39,10 +39,10 @@ export type KLConfig = z.infer<typeof klConfigSchema>;
 
 export const DEFAULT_CONFIG: KLConfig = {
     permission: {
-        bash: "allow",
+        bash: "ask",
         editFile: "allow",
-        writeFile: "allow",
-        applyPatch: "allow",
+        writeFile: "ask",
+        applyPatch: "ask",
         readFile: "allow",
         listDirectory: "allow",
         glob: "allow",

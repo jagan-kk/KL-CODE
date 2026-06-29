@@ -4,7 +4,7 @@ import { useKeyboard } from "@opentui/react"
 import { format } from "date-fns"
 import { useNavigate } from "react-router"
 import { writeFile } from "fs/promises"
-import { join } from "path"
+import { join, resolve } from "path"
 import {AgentDialogContent,ModelDialogContent,SessionDialogContent,ThemeDialogContent } from "../dialogs";
 import { useDialog } from "../../providers/dialog";
 import { useKeyboardLayer } from "../../providers/keyboard-layer";
@@ -240,6 +240,22 @@ export const COMMANDS: Command[] = [
         value: "/exit",
         action: (ctx) => {
             ctx.exit();
+        },
+    },
+    {
+        name: "workspace",
+        description: "Set the working directory for sessions",
+        value: "/workspace",
+        action: (ctx) => {
+            const pathArg = ctx.inputText?.slice("/workspace".length).trim();
+            let newPath: string;
+            if (pathArg) {
+                newPath = resolve(process.cwd(), pathArg);
+            } else {
+                newPath = ctx.cwd;
+            }
+            ctx.setCwd(newPath);
+            ctx.toast.show({ message: `Workspace set to: ${newPath}` });
         },
     },
 

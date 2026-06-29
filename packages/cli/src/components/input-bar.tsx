@@ -40,7 +40,7 @@ export function InputBar({ onSubmit, disabled = false, messages, sessionId }:Pro
     const renderer = useRenderer();
     const navigate =useNavigate();
     const toast = useToast();
-    const { mode,toggleMode,setMode,setModel,showReasoning,setShowReasoning}=usePromptConfig();
+    const { mode,toggleMode,setMode,setModel,showReasoning,setShowReasoning,cwd,setCwd}=usePromptConfig();
     const dialog=useDialog();
     const { colors }= useTheme();
     const { isTopLayer, setResponder } = useKeyboardLayer();
@@ -94,7 +94,8 @@ export function InputBar({ onSubmit, disabled = false, messages, sessionId }:Pro
     }
 
     const handleCommand = useCallback((
-        command: Command | undefined
+        command: Command | undefined,
+        inputText?: string,
     )=> {
         const textarea = textareaRef.current;
         if (!textarea || !command)  return;
@@ -111,13 +112,16 @@ export function InputBar({ onSubmit, disabled = false, messages, sessionId }:Pro
                 setModel,
                 showReasoning,
                 setShowReasoning,
+                cwd,
+                setCwd,
+                inputText,
                 messages,
                 sessionId,
             });
         }else {
             textarea.insertText(command.value + " ");
         }
-    }, [renderer,toast,dialog,navigate,mode,setMode,setModel,showReasoning,setShowReasoning,messages,sessionId])
+    }, [renderer,toast,dialog,navigate,mode,setMode,setModel,showReasoning,setShowReasoning,cwd,setCwd,messages,sessionId])
 
      const handleCommandExecute = useCallback((index : number) => {
         const command = resolveCommand(index);
@@ -170,9 +174,12 @@ export function InputBar({ onSubmit, disabled = false, messages, sessionId }:Pro
     onSubmitRef.current = () => {
         if (disabled) return;
 
+        const textarea = textareaRef.current;
+        const currentInput = textarea?.plainText ?? "";
+
         if (showCommandMenu) {
             const command = resolveCommand(selectedIndex);
-            handleCommand(command);
+            handleCommand(command, currentInput);
             return;
         }
 

@@ -1,9 +1,9 @@
 {
   "permission": {
-    "bash": "allow",
+    "bash": "ask",
     "editFile": "allow",
-    "writeFile": "allow",
-    "applyPatch": "allow",
+    "writeFile": "ask",
+    "applyPatch": "ask",
     "readFile": "allow",
     "webfetch": "allow",
     "websearch": "allow",

@@ -16,6 +16,9 @@ export type CommandContext = {
     setModel:(model:SupportedChatModelId) =>void;
     showReasoning:boolean;
     setShowReasoning:(show:boolean)=>void;
+    cwd:string;
+    setCwd:(cwd:string)=>void;
+    inputText?:string;
     messages?:Message[];
     sessionId?:string;
 };

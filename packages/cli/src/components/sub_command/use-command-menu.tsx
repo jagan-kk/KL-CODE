@@ -1,7 +1,7 @@
 import { useRef, useState,useMemo, type RefObject } from "react";
 import type { ScrollBoxRenderable } from "@opentui/core";
 import { useKeyboard } from "@opentui/react";
-import { getFilteredCommands } from "./filter-commands";
+import { getFilteredCommands, ALL_COMMANDS } from "./filter-commands";
 import type { Command } from "./types"
 import { useKeyboardLayer } from "../../providers/keyboard-layer";
 
@@ -42,13 +42,19 @@ export function useCommandMenu(): UseCommandMenuReturn {
 
         }
         const prefix = text.startsWith("/") ? text.slice(1): null;
-        if (prefix!==null && !prefix.includes(" ")) {
-            setshowCommandMenu(true);
-            push("command",() => {
-                close();
-                return true;
-            });
-        }else{
+        if (prefix !== null) {
+            const cmdName = prefix.split(" ")[0];
+            const isKnownCommand = ALL_COMMANDS.some(cmd => cmd.name === cmdName);
+            if (!prefix.includes(" ") || isKnownCommand) {
+                setshowCommandMenu(true);
+                push("command",() => {
+                    close();
+                    return true;
+                });
+            } else {
+                close()
+            }
+        } else {
             close()
         }
         };

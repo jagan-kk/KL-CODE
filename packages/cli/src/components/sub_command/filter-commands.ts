@@ -34,11 +34,13 @@ function loadCustomCommands(): Command[] {
 }
 
 const customCommands = loadCustomCommands();
-const ALL_COMMANDS = [...COMMANDS, ...customCommands];
+export const ALL_COMMANDS = [...COMMANDS, ...customCommands];
 
 export function getFilteredCommands(query: string): Command[] {
     if (query.length == 0) return ALL_COMMANDS;
+    const cmdPrefix = query.split(" ")[0].toLowerCase();
+    if (cmdPrefix.length == 0) return ALL_COMMANDS;
     return ALL_COMMANDS.filter((cmd) =>
-        cmd.name.toLowerCase().startsWith(query.toLowerCase())
+        cmd.name.toLowerCase().startsWith(cmdPrefix)
     );
 }
