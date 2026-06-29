@@ -2,7 +2,7 @@ import { SessionShell } from "../components/session-shell";
 import { useParams,useLocation,useNavigate} from "react-router"
 import {z} from "zod"
 import type { InferResponseType} from "hono/client";
-import {useState,useEffect,useMemo} from "react"
+import {useState,useEffect,useMemo, useCallback} from "react"
 import { UserMessage,BotMessage,ErrorMessage } from "../components/messages";
 import { useToast} from "../providers/toast"
 import { apiClient } from "../lib/api-clients";
@@ -12,9 +12,12 @@ import prettyMs from "pretty-ms";
 import {MessageStatus} from "@KL-CODE/database/enums"
 import { usePromptConfig } from "../providers/prompt-config";
 import { messagePartsSchema, type SupportedChatModelId } from "@KL-CODE/shared";
-import { useChat } from "../hooks/use-chat";
+import { useChat, type Message, type ClientMessagePort } from "../hooks/use-chat";
+import { exec } from "child_process";
+import { promisify } from "util";
 import { useKeyboardLayer } from "../providers/keyboard-layer";
-import type { Message , ClientMessagePort} from "../hooks/use-chat"
+
+const execAsync = promisify(exec);
 
 
 type SessionData = InferResponseType<(typeof apiClient.sessions) [":id"]["$get"], 200>;
@@ -43,8 +46,15 @@ function mapDbMessages(dbMessages:SessionData["messages"]):Message[] {
 
         const parsedParts =m.parts == null?null:messagePartsSchema.safeParse(m.parts);
         const parts:ClientMessagePort[]=parsedParts?.success ?
-        parsedParts.data.map((p)=> 
-        p.type==="tool-call" ? { ...p,status:"done" as const} :p,):[]
+        parsedParts.data.map((p)=> {
+            if (p.type==="tool-call") {
+                return { ...p,status:"done" as const};
+            }
+            if (p.type==="question") {
+                return {...p, answered: true};
+            }
+            return p;
+        }):[]
 
         return {
             id:m.id,
@@ -93,7 +103,52 @@ function SessionChat({session} : { session:SessionData}) {
     const [initialMessages] = useState(()=>mapDbMessages(session.messages));
     const {mode,model} = usePromptConfig();
     const {isTopLayer} =useKeyboardLayer();
-    const { messages,streaming,submit,abort,interrupt} = useChat(session.id,initialMessages);
+    const { messages,streaming,submit,abort,interrupt, answerQuestion, addMessage} = useChat(session.id,initialMessages);
+
+    const handleBashCommand = useCallback(async (cmd: string) => {
+        const userMessage: Message = {
+            id: crypto.randomUUID(),
+            role: "user",
+            content: `!${cmd}`,
+            mode,
+            model,
+        };
+        addMessage(userMessage);
+        try {
+            const { stdout, stderr } = await execAsync(`powershell -Command "${cmd.replace(/"/g, '\\"')}"`, { timeout: 30000 });
+            const output = stderr ? `${stdout}\n${stderr}` : stdout;
+            const assistantMessage: Message = {
+                id: crypto.randomUUID(),
+                role: "assistant",
+                content: output || "(no output)",
+                mode,
+                model,
+                parts: [{ type: "text", text: output || "(no output)" }],
+            };
+            addMessage(assistantMessage);
+        } catch (err) {
+            const errorMessage: Message = {
+                id: crypto.randomUUID(),
+                role: "error",
+                content: err instanceof Error ? err.message : "Command failed",
+            };
+            addMessage(errorMessage);
+        }
+    }, [mode, model, addMessage]);
+
+    const activeQuestion = useMemo(() => {
+        if (streaming.status === "streaming") {
+            const lastPart = streaming.parts[streaming.parts.length - 1];
+            if (lastPart?.type === "question" && !lastPart.answered) {
+                return lastPart;
+            }
+        }
+        return null;
+    }, [streaming]);
+
+    const handleAnswerQuestion = useCallback((questionId: string, answers: string[]) => {
+        void answerQuestion(questionId, answers);
+    }, [answerQuestion]);
 
 
     useEffect(()=> {
@@ -109,11 +164,19 @@ function SessionChat({session} : { session:SessionData}) {
 
     return (
         <SessionShell
-        onSubmit ={(text) =>
-            submit({userText:text,mode,model})
-        }
+        onSubmit ={(text) => {
+            if (text.startsWith("!")) {
+                handleBashCommand(text.slice(1));
+            } else {
+                submit({userText:text,mode,model});
+            }
+        }}
         loading={streaming.status==="streaming"}
         interruptable={streaming.status === "streaming"}
+        activeQuestion={activeQuestion}
+        onAnswerQuestion={handleAnswerQuestion}
+        messages={messages}
+        sessionId={session.id}
         >
             {messages.map((msg)=> (
                 <ChatMessage key={msg.id} msg={msg} />

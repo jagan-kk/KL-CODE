@@ -3,7 +3,7 @@ export type ModelPricing = {
     outputUsdPerMillionTokens:number;
 }
 
-export type SupportedProvider = "openai" | "openrouter";
+export type SupportedProvider = "openai" | "openrouter" | "ollama";
 
 type SupportedChatModelDefinition ={
     id: string;
@@ -46,11 +46,19 @@ export const SUPPORTED_CHAT_MODELS =[ {
         },
     },
     {
-        id: "google/gemini-2.0-flash-001",
+        id: "qwen/qwen3-coder:free",
         provider:"openrouter",
         pricing: {
             inputUsdPerMillionTokens:0.10,
             outputUsdPerMillionTokens:0.40,
+        },
+    },
+    {
+        id: "ollama/qwen3-coder:30b",
+        provider:"ollama",
+        pricing: {
+            inputUsdPerMillionTokens:0,
+            outputUsdPerMillionTokens:0,
         },
     },
 ] as const satisfies readonly SupportedChatModelDefinition[]

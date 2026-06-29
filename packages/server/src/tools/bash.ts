@@ -4,6 +4,13 @@ import {z} from "zod"
 const MAX_OUTPUT=20_000;
 const DEFAULT_TIMEOUT=30_000;
 
+function getShell(): string[] {
+    if (process.platform === "win32") {
+        return ["powershell", "-Command"]
+    }
+    return ["bash", "-c"]
+}
+
 export function createBashTool(cwd:string) {
     return tool ({
         description :
@@ -18,7 +25,8 @@ export function createBashTool(cwd:string) {
         }),
         execute:async ({command,timeout}) => {
             try {
-              const proc = Bun.spawn(["bash","-c",command],{
+              const shell = getShell();
+              const proc = Bun.spawn([...shell,command],{
                 cwd,
                 stdout:"pipe",
                 stderr:"pipe",

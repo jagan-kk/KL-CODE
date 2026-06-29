@@ -1,4 +1,4 @@
-import { useRef, useCallback,useEffect } from "react";
+import { useRef, useCallback,useEffect, useState } from "react";
 import { TextareaRenderable,type KeyEvent } from "@opentui/core";
 import { useKeyboard,useRenderer } from "@opentui/react";
 import type { KeyBinding } from "@opentui/core";
@@ -13,10 +13,15 @@ import { useTheme } from "../providers/theme";
 import { useNavigate } from "react-router";
 import { usePromptConfig } from "../providers/prompt-config";
 import {Mode} from "@KL-CODE/database/enums"
+import { FileSearchDialog } from "./dialogs/file-search-dialog";
+
+import type { Message } from "../hooks/use-chat";
 
 type Props = {
     onSubmit: (text: string) => void;
     disabled?: boolean;
+    messages?: Message[];
+    sessionId?: string;
 };
 
 export const TEXTAREA_KEY_BINDINGS: KeyBinding[] =[
@@ -29,16 +34,18 @@ export const TEXTAREA_KEY_BINDINGS: KeyBinding[] =[
 
 
 
-export function InputBar({ onSubmit, disabled = false }:Props) {
+export function InputBar({ onSubmit, disabled = false, messages, sessionId }:Props) {
     const textareaRef = useRef<TextareaRenderable>(null);
     const onSubmitRef = useRef<() => void>(() => {});
     const renderer = useRenderer();
     const navigate =useNavigate();
     const toast = useToast();
-    const { mode,toggleMode,setMode,setModel}=usePromptConfig();
+    const { mode,toggleMode,setMode,setModel,showReasoning,setShowReasoning,cwd,setCwd}=usePromptConfig();
     const dialog=useDialog();
     const { colors }= useTheme();
     const { isTopLayer, setResponder } = useKeyboardLayer();
+
+    const [atPosition, setAtPosition] = useState(-1);
 
 
     const {
@@ -57,8 +64,21 @@ export function InputBar({ onSubmit, disabled = false }:Props) {
         const textarea = textareaRef.current;
         if (!textarea) return;
 
-        handleContentChange(textarea.plainText);
-    }, [])
+        const text = textarea.plainText;
+        handleContentChange(text);
+
+        const atIdx = text.lastIndexOf("@");
+        if (atIdx >= 0 && !text.startsWith("/")) {
+            const afterAt = text.slice(atIdx + 1);
+            if (afterAt.length > 0 && !afterAt.includes(" ")) {
+                setAtPosition(atIdx);
+            } else {
+                setAtPosition(-1);
+            }
+        } else {
+            setAtPosition(-1);
+        }
+    }, [handleContentChange])
 
     const handleSubmit = () => {
         if (disabled) return;
@@ -74,7 +94,8 @@ export function InputBar({ onSubmit, disabled = false }:Props) {
     }
 
     const handleCommand = useCallback((
-        command: Command | undefined
+        command: Command | undefined,
+        inputText?: string,
     )=> {
         const textarea = textareaRef.current;
         if (!textarea || !command)  return;
@@ -88,13 +109,19 @@ export function InputBar({ onSubmit, disabled = false }:Props) {
                 navigate,
                 mode,
                 setMode,
-                setModel
-
+                setModel,
+                showReasoning,
+                setShowReasoning,
+                cwd,
+                setCwd,
+                inputText,
+                messages,
+                sessionId,
             });
         }else {
             textarea.insertText(command.value + " ");
         }
-    }, [renderer,toast,dialog,navigate,mode,setMode,setModel])
+    }, [renderer,toast,dialog,navigate,mode,setMode,setModel,showReasoning,setShowReasoning,cwd,setCwd,messages,sessionId])
 
      const handleCommandExecute = useCallback((index : number) => {
         const command = resolveCommand(index);
@@ -124,12 +151,40 @@ export function InputBar({ onSubmit, disabled = false }:Props) {
         };
     }, []);
 
+    const handleFileReference = useCallback((filePath: string) => {
+        const textarea = textareaRef.current;
+        if (!textarea || atPosition < 0) return;
+        const text = textarea.plainText;
+        const afterAt = text.slice(atPosition + 1);
+        const endIdx = afterAt.search(/\s/);
+        const queryLen = endIdx >= 0 ? endIdx : afterAt.length;
+        const before = text.slice(0, atPosition);
+        const after = text.slice(atPosition + 1 + queryLen);
+        textarea.setText(`${before}${filePath}${after}`);
+        setAtPosition(-1);
+    }, [atPosition]);
+
+    const handleOpenFileSearch = useCallback(() => {
+        dialog.open({
+            title: "Search files",
+            children: <FileSearchDialog onSelectFile={handleFileReference} />,
+        });
+    }, [dialog, handleFileReference]);
+
     onSubmitRef.current = () => {
         if (disabled) return;
 
+        const textarea = textareaRef.current;
+        const currentInput = textarea?.plainText ?? "";
+
         if (showCommandMenu) {
             const command = resolveCommand(selectedIndex);
-            handleCommand(command);
+            handleCommand(command, currentInput);
+            return;
+        }
+
+        if (atPosition >= 0) {
+            handleOpenFileSearch();
             return;
         }
         handleSubmit();

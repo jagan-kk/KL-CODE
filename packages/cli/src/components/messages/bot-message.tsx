@@ -2,6 +2,8 @@ import { TextAttributes } from "@opentui/core";
 import { useTheme } from "../../providers/theme";
 import type { ClientMessagePort,ClientToolCallPart } from "../../hooks/use-chat";
 import { Mode } from "@KL-CODE/database/enums";
+import type { ThemeColors } from "../../theme";
+import { usePromptConfig } from "../../providers/prompt-config";
 
 type Props = {
     parts:ClientMessagePort[]
@@ -40,11 +42,33 @@ function groupConsecutiveParts(parts:ClientMessagePort[]):PartGroup[] {
             lastGroup?.parts.push(part);
 
         }else {
-            const key = part.type === "tool-call" ? `group-tc-${part.id}` : `group-${part.type}-${i}`;
+            let key: string;
+            if (part.type === "tool-call") {
+                key = `group-tc-${part.id}`;
+            } else {
+                key = `group-${part.type}-${i}`;
+            }
             groups.push({ type:part.type,parts:[part],key})
         }
     }
     return groups;
+}
+
+function statusIcon(status: string): string {
+    switch (status) {
+        case "completed": return "✓";
+        case "in_progress": return "◉";
+        case "cancelled": return "✕";
+        default: return "○";
+    }
+}
+
+function priorityFg(priority: string, colors: ThemeColors): string {
+    switch (priority) {
+        case "high": return colors.error;
+        case "medium": return colors.info;
+        default: return colors.dimSeparator;
+    }
 }
 
 
@@ -57,12 +81,14 @@ export function BotMessage({
   interrupted = false,
 }: Props) {
   const { colors } = useTheme();
+  const { showReasoning } = usePromptConfig();
+  const visibleParts = showReasoning ? parts : parts.filter((p) => p.type !== "reasoning");
 
   return (
     <box width="100%" flexDirection="column">
       {/* Message */}
       <box width="100%" alignItems="center">
-        {groupConsecutiveParts(parts).map((group) => (
+        {groupConsecutiveParts(visibleParts).map((group) => (
           <box key={group.key} paddingY={1} width="100%">
             {group.parts.map((part, j) => {
               if (part.type === "reasoning") {
@@ -97,6 +123,64 @@ export function BotMessage({
                       {formatToolArgs(part)}
                       {part.status === "calling" ? " ..." : ""}
                     </text>
+                  </box>
+                );
+              }
+
+              if (part.type === "question") {
+                return (
+                  <box
+                    key={`question-${part.questionId}`}
+                    border={["left"]}
+                    borderColor={colors.info}
+                    width="100%"
+                    paddingX={2}
+                    flexDirection="column"
+                  >
+                    <text attributes={TextAttributes.BOLD}>
+                      <em fg={colors.info}>Question: {part.header}</em>
+                    </text>
+                    <text>{part.question}</text>
+                    {part.options && part.options.length > 0 && (
+                      <box flexDirection="column" paddingX={1} paddingY={1}>
+                        {part.options.map((opt, oi) => (
+                          <text key={oi} attributes={TextAttributes.DIM}>
+                            {part.multiple ? "□" : "○"} {opt.label}: {opt.description}
+                          </text>
+                        ))}
+                      </box>
+                    )}
+                    {!part.answered && (
+                      <text attributes={TextAttributes.DIM} fg={colors.info}>
+                        (waiting for your response...)
+                      </text>
+                    )}
+                  </box>
+                );
+              }
+
+              if (part.type === "todo") {
+                return (
+                  <box
+                    key={`todo-${j}`}
+                    border={["left"]}
+                    borderColor={colors.thinkingBorder}
+                    width="100%"
+                    paddingX={2}
+                    flexDirection="column"
+                  >
+                    <text attributes={TextAttributes.BOLD}>Tasks:</text>
+                    <box flexDirection="column" paddingX={1}>
+                      {part.todos.map((todo, ti) => (
+                        <text key={ti}>
+                          <text fg={priorityFg(todo.priority, colors)}>
+                            {statusIcon(todo.status)}
+                          </text>
+                          {` ${todo.content} `}
+                          <text attributes={TextAttributes.DIM}>({todo.priority})</text>
+                        </text>
+                      ))}
+                    </box>
                   </box>
                 );
               }

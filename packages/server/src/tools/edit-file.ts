@@ -2,11 +2,9 @@ import {tool} from "ai";
 import {z} from "zod"
 import {resolve,relative} from "path"
 import { readFile,writeFile } from "fs/promises";
+import { recordMutation } from "../lib/undo-redo";
 
-const MAX_OUTPUT=20_000;
-const DEFAULT_TIMEOUT=30_000;
-
-export function createEditFileTool(cwd:string) {
+export function createEditFileTool(cwd:string, sessionId?: string) {
     return tool ({
         description :
         "Make a targeted edit to a file by replacing an exact string match. the oldString must appear exactly once in the file (for safety).use this for surgical edits instead of rewriting entire files.",
@@ -38,6 +36,15 @@ export function createEditFileTool(cwd:string) {
 
             const updated = content.replace(oldString,newString);
             await writeFile(resolved,updated,"utf-8")
+
+            if (sessionId) {
+                recordMutation(sessionId, {
+                    type: "edit",
+                    path: relative(cwd, resolved),
+                    previousContent: content,
+                    newContent: updated,
+                });
+            }
 
             return {
                 success:true as const,

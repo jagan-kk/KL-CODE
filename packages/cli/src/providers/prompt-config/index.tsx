@@ -9,6 +9,10 @@ type PromptConfigContextValue={
     setMode:(mode:Mode) => void;
     model:SupportedChatModelId;
     setModel:(model:SupportedChatModelId)=>void;
+    showReasoning:boolean;
+    setShowReasoning:(show:boolean)=>void;
+    cwd:string;
+    setCwd:(cwd:string)=>void;
 };
 
 const PromptConfigContext= createContext<PromptConfigContextValue |null>(null);
@@ -28,6 +32,8 @@ type PromptConfigProviderProps={
 export function PromptConfigProvider({children}:PromptConfigProviderProps) {
     const [mode,setMode]=useState<Mode>(Mode.BUILD);
     const [model,setModel]=useState<SupportedChatModelId>(DEFAULT_CHAT_MODEL_ID)
+    const [showReasoning,setShowReasoning]=useState(true);
+    const [cwd,setCwd]=useState(()=>process.cwd());
 
     const toggleMode =useCallback(()=> {
         setMode((m) => (m===Mode.BUILD ? Mode.PLAN :Mode.BUILD))
@@ -39,8 +45,9 @@ export function PromptConfigProvider({children}:PromptConfigProviderProps) {
             mode,
             toggleMode,
             setMode,
-            model,setModel
-
+            model,setModel,
+            showReasoning,setShowReasoning,
+            cwd,setCwd,
         }}>
             {children}
         </PromptConfigContext.Provider>

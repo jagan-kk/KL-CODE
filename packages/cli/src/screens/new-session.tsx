@@ -14,6 +14,7 @@ const newSessionStateSchema = z.object({
     message:z.string(),
     mode:z.enum(Mode),
     model:z.string(),
+    cwd:z.string().optional(),
 })
 
 export function Newsession() {
@@ -47,7 +48,7 @@ export function Newsession() {
                 const res = await apiClient.sessions.$post({
                     json: {
                         title:state.message.slice(0,100),
-                        cwd:process.cwd(),
+                        cwd: state.cwd ?? process.cwd(),
                     initialMessage: {
                         role:"USER",
                         content:state.message,
