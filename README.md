@@ -80,4 +80,19 @@ MIT
 
 https://github.com/user-attachments/assets/16d9325d-3849-4dfb-812a-d15e29e26500
 
+## Tech Stack
 
+| Category | Technology |
+|----------|-----------|
+| **Runtime** | [Bun](https://bun.sh) |
+| **Language** | [TypeScript](https://www.typescriptlang.org/) |
+| **HTTP Framework** | [Hono](https://hono.dev) |
+| **Terminal UI** | [React](https://react.dev) + [@opentui/react](https://github.com/opentui/opentui) |
+| **AI SDK** | [Vercel AI SDK](https://sdk.vercel.ai/docs) (`ai`) |
+| **LLM Providers** | OpenRouter (`@openrouter/ai-sdk-provider`) |
+| **Database ORM** | [Prisma](https://www.prisma.io/) 7 + PostgreSQL |
+| **Validation** | [Zod](https://zod.dev) |
+| **Error Tracking** | [Sentry](https://sentry.io) (`@sentry/bun`) |
+| **Stream Parsing** | `eventsource-parser` |
+| **Routing (CLI)** | `react-router` (memory router) |
+| **Monorepo** | Bun workspaces (`packages/*`) |
